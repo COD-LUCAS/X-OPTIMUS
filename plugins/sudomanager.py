@@ -3,103 +3,107 @@ from telethon import events
 
 CONFIG = "container_data/config.env"
 
-
-# -------------------------------------------------------
-# ENV LOAD / SAVE
-# -------------------------------------------------------
 def load_env():
     data = {}
     if os.path.exists(CONFIG):
-        for line in open(CONFIG, "r"):
-            if "=" in line:
-                k, v = line.strip().split("=", 1)
-                data[k] = v
+        with open(CONFIG, "r") as f:
+            for i in f:
+                if "=" in i:
+                    k, v = i.strip().split("=", 1)
+                    data[k] = v
     return data
-
 
 def save_env(data):
     with open(CONFIG, "w") as f:
         for k, v in data.items():
             f.write(f"{k}={v}\n")
 
+def stringify(sudo_list):
+    return " ".join(str(x) for x in sudo_list)
 
-# -------------------------------------------------------
-# GET SUDO LIST
-# -------------------------------------------------------
-def get_sudo_list():
-    data = load_env()
-    return data.get("SUDO", "").split()
+async def resolve_id(bot, value):
+    try:
+        if value.isdigit():
+            return int(value)
+        entity = await bot.get_entity(value)
+        return entity.id
+    except:
+        return None
 
-
-# -------------------------------------------------------
-# REGISTER COMMANDS
-# -------------------------------------------------------
 def register(bot):
 
-    # ============== CHECKER FUNCTION ====================
-    def allowed(uid):
-        return uid == bot.owner_id or uid in bot.sudo_users
-
-    # ============== ADD SUDO =============================
-    @bot.on(events.NewMessage(pattern=r"^/setsudo\s+(\d+)$"))
-    async def add_sudo(event):
+    @bot.on(events.NewMessage(pattern=r"^/setsudo(?:\s+(.*))?$"))
+    async def setsudo(event):
         uid = event.sender_id
-        if not allowed(uid):
+        sudo = bot.sudo_users
+        if uid != bot.owner_id and uid not in sudo:
             return await event.reply("❌ Permission denied.")
 
-        new_id = event.pattern_match.group(1)
+        target = event.pattern_match.group(1)
+        if not target:
+            return await event.reply("Usage: `/setsudo <id or @username>`")
 
-        sudos = get_sudo_list()
-        if new_id in sudos:
-            return await event.reply("⚠️ Already a sudo member.")
+        resolved = await resolve_id(bot, target.strip())
+        if not resolved:
+            return await event.reply("❌ Invalid ID or username.")
 
-        sudos.append(new_id)
+        if resolved == bot.owner_id:
+            return await event.reply("❌ Owner cannot be added as sudo. Already owner.")
+
+        if resolved in sudo:
+            return await event.reply("⚠️ Already a sudo user.")
+
+        sudo.append(resolved)
         data = load_env()
-        data["SUDO"] = " ".join(sudos)
+        data["SUDO"] = stringify(sudo)
         save_env(data)
+        bot.sudo_users = sudo
 
-        await event.reply(f"✅ Added `{new_id}` to sudo members.\nUse `/getsudo` to view all.")
+        await event.reply(f"✅ Added **{resolved}** as sudo.")
 
-    # ============== DELETE SUDO ===========================
-    @bot.on(events.NewMessage(pattern=r"^/delsudo\s+(\d+)$"))
-    async def del_sudo(event):
+    @bot.on(events.NewMessage(pattern=r"^/delsudo(?:\s+(.*))?$"))
+    async def delsudo(event):
         uid = event.sender_id
-        if not allowed(uid):
+        sudo = bot.sudo_users
+        if uid != bot.owner_id and uid not in sudo:
             return await event.reply("❌ Permission denied.")
 
-        rm_id = event.pattern_match.group(1)
+        target = event.pattern_match.group(1)
+        if not target:
+            return await event.reply("Usage: `/delsudo <id or @username>`")
 
-        sudos = get_sudo_list()
-        if rm_id not in sudos:
-            return await event.reply("⚠️ That user is not a sudo member.")
+        resolved = await resolve_id(bot, target.strip())
+        if not resolved:
+            return await event.reply("❌ Invalid ID or username.")
 
-        sudos.remove(rm_id)
+        if resolved not in sudo:
+            return await event.reply("❌ Not in sudo list.")
+
+        sudo.remove(resolved)
         data = load_env()
-        data["SUDO"] = " ".join(sudos)
+        data["SUDO"] = stringify(sudo)
         save_env(data)
+        bot.sudo_users = sudo
 
-        await event.reply(f"🗑️ Removed `{rm_id}` from sudo members.")
+        await event.reply(f"🗑 Removed **{resolved}** from sudo.")
 
-    # ============== SHOW SUDO LIST =========================
     @bot.on(events.NewMessage(pattern=r"^/getsudo$"))
-    async def get_sudo(event):
+    async def getsudo(event):
         uid = event.sender_id
-        if not allowed(uid):
+        sudo = bot.sudo_users
+        if uid != bot.owner_id and uid not in sudo:
             return await event.reply("❌ Permission denied.")
 
-        sudos = get_sudo_list()
-        if not sudos:
-            return await event.reply("❌ No sudo members found.")
+        if not sudo:
+            return await event.reply("No sudo users added.")
 
-        text = "🛡 **SUDO MEMBERS**\n━━━━━━━━━━━━━━\n"
-
-        for sid in sudos:
+        text = "🛡 **SUDO USERS**\n\n"
+        for i in sudo:
             try:
-                user = await bot.get_entity(int(sid))
-                name = user.first_name or "Unknown"
-                uname = f"@{user.username}" if user.username else "No username"
-                text += f"👤 **{name}**\n🔗 `{sid}`\n{uname}\n\n"
+                u = await bot.get_entity(i)
+                name = u.first_name or "N/A"
+                text += f"• `{i}` — {name}\n"
             except:
-                text += f"👤 `{sid}` (User not found)\n\n"
+                text += f"• `{i}` — Unknown\n"
 
         await event.reply(text)
