@@ -44,8 +44,10 @@ Use **/list** to get more info.
 /mode
 /setvar
 /delvar
+/getvar
 /setsudo
 /delsudo
+/getsudo
 /plugins
 /install
 /remove
