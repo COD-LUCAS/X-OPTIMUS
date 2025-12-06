@@ -3,7 +3,6 @@ from telethon import events
 
 CONFIG = "container_data/config.env"
 
-
 def load_env():
     data = {}
     if os.path.exists(CONFIG):
@@ -23,9 +22,9 @@ def save_env(data):
 
 def register(bot):
 
+    # SETVAR
     @bot.on(events.NewMessage(pattern=r"^/setvar\s*(.*)"))
     async def setvar(event):
-
         uid = event.sender_id
         if uid != bot.owner_id and uid not in bot.sudo_users:
             return await event.reply("❌ Permission denied.")
@@ -35,9 +34,7 @@ def register(bot):
         if not args or "=" not in args:
             return await event.reply(
                 "**Usage:**\n"
-                "`/setvar KEY=value`\n"
-                "Example:\n"
-                "`/setvar REMOVE_BG_API_KEY=your_key_here`"
+                "`/setvar KEY=value`"
             )
 
         key, value = args.split("=", 1)
@@ -47,9 +44,9 @@ def register(bot):
 
         await event.reply(f"✅ `{key}` updated successfully.")
 
+    # DELVAR
     @bot.on(events.NewMessage(pattern=r"^/delvar\s*(.*)"))
     async def delvar(event):
-
         uid = event.sender_id
         if uid != bot.owner_id and uid not in bot.sudo_users:
             return await event.reply("❌ Permission denied.")
@@ -59,9 +56,7 @@ def register(bot):
         if not key:
             return await event.reply(
                 "**Usage:**\n"
-                "`/delvar KEY`\n"
-                "Example:\n"
-                "`/delvar REMOVE_BG_API_KEY`"
+                "`/delvar KEY`"
             )
 
         data = load_env()
@@ -72,3 +67,29 @@ def register(bot):
             return await event.reply(f"🗑️ `{key}` removed.")
         else:
             return await event.reply("❌ Variable not found.")
+
+    # GETVAR
+    @bot.on(events.NewMessage(pattern=r"^/getvar\s*(.*)"))
+    async def getvar(event):
+        uid = event.sender_id
+        if uid != bot.owner_id and uid not in bot.sudo_users:
+            return await event.reply("❌ Permission denied.")
+
+        key = event.pattern_match.group(1).strip()
+
+        if not key:
+            return await event.reply(
+                "**Usage:**\n"
+                "`/getvar KEY`\n\n"
+                "Example:\n"
+                "`/getvar GEMINI_API_KEY`"
+            )
+
+        data = load_env()
+
+        if key not in data:
+            return await event.reply("❌ Variable not found.")
+
+        value = data[key]
+
+        await event.reply(f"🔍 **Value for `{key}`:**\n```\n{value}\n```")
