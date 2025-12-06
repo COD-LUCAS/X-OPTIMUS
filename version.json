@@ -1,6 +1,12 @@
 {
-  "version": "1.1.0",
+  "version": "1.2.0",
   "changelog": [
-    "IMAGE HAD FIXED"
+    "Improved startup speed and stability",
+    "Added auto UptimeRobot + auto port detection",
+    "Upgraded Sudo Manager with username & ID resolver",
+    "Enhanced plugin loader performance",
+    "Added private/public mode enforcement in main core",
+    "Improved Render & Koyeb compatibility",
+    "Reduced memory usage and optimized ffmpeg check"
   ]
 }
