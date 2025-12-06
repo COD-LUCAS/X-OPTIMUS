@@ -1,6 +1,5 @@
 import os
 import importlib
-import random
 import platform
 import time
 import asyncio
@@ -12,6 +11,7 @@ from telethon.sessions import StringSession
 from telethon.tl.functions.channels import JoinChannelRequest
 import threading
 import requests
+from flask import Flask
 
 START_TIME = time.time()
 
@@ -158,6 +158,19 @@ def uptime_pinger():
 def start_uptime_pinger():
     threading.Thread(target=uptime_pinger, daemon=True).start()
 
+def start_webserver():
+    app = Flask(__name__)
+
+    @app.route("/")
+    def home():
+        return "X-OPTIMUS ONLINE"
+
+    port = int(os.getenv("PORT", 8080))
+    threading.Thread(
+        target=lambda: app.run(host="0.0.0.0", port=port),
+        daemon=True
+    ).start()
+
 async def show_banner(version, platform_type, plugin_count, session_status):
     os.system("clear || cls")
     print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
@@ -181,6 +194,8 @@ async def start():
     total = load_plugins()
     platform_type = detect_platform()
 
+    start_webserver()
+
     await bot.start()
 
     me = await bot.get_me()
@@ -195,7 +210,6 @@ async def start():
 
     bot.mode = os.getenv("MODE", "public").lower()
     bot.MODE = bot.mode.upper()
-    bot.uid = me.id
 
     if platform_type != "PANEL":
         start_uptime_pinger()
