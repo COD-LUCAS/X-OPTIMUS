@@ -3,6 +3,8 @@ import time
 import aiohttp
 import base64
 import json
+import os
+from pathlib import Path
 
 start = time.time()
 
@@ -22,7 +24,188 @@ chat_contexts = {}
 model_states = {}
 global_system_prompt = "You are a helpful AI assistant. Be concise, friendly, and informative."
 
+# Config file path
+CONFIG_PATH = "container_data/config.env"
+
+
+def load_env_config():
+    """Load configuration from config.env file"""
+    config = {}
+    if os.path.exists(CONFIG_PATH):
+        with open(CONFIG_PATH, 'r') as f:
+            for line in f:
+                line = line.strip()
+                if line and not line.startswith('#') and '=' in line:
+                    key, value = line.split('=', 1)
+                    config[key.strip()] = value.strip().strip('"').strip("'")
+    return config
+
+
+def save_env_config(key, value):
+    """Save or update a key in config.env file"""
+    # Create directory if it doesn't exist
+    Path(CONFIG_PATH).parent.mkdir(parents=True, exist_ok=True)
+    
+    # Read existing config
+    lines = []
+    key_exists = False
+    
+    if os.path.exists(CONFIG_PATH):
+        with open(CONFIG_PATH, 'r') as f:
+            for line in f:
+                if line.strip() and not line.strip().startswith('#') and '=' in line:
+                    existing_key = line.split('=', 1)[0].strip()
+                    if existing_key == key:
+                        lines.append(f'{key}="{value}"\n')
+                        key_exists = True
+                    else:
+                        lines.append(line)
+                else:
+                    lines.append(line)
+    
+    # Add new key if it doesn't exist
+    if not key_exists:
+        lines.append(f'{key}="{value}"\n')
+    
+    # Write back to file
+    with open(CONFIG_PATH, 'w') as f:
+        f.writelines(lines)
+
+
+def get_gemini_api_key():
+    """Get Gemini API key from config.env"""
+    config = load_env_config()
+    return config.get('GEMINI_API_KEY', '')
+
 def register(bot):
+    
+    @bot.on(events.NewMessage(pattern=r"^/setvar(?:\s+(.*))?$"))
+    async def setvar_command(event):
+        """Set environment variables (Owner/Sudo only)"""
+        uid = event.sender_id
+        if uid != bot.owner_id and uid not in bot.sudo_users:
+            return await event.reply("❌ Permission denied.")
+        
+        args = event.pattern_match.group(1)
+        
+        if not args or '=' not in args:
+            return await event.reply(
+                "**Usage:** `/setvar KEY=VALUE`\n\n"
+                "**Example:**\n"
+                "`/setvar GEMINI_API_KEY=your_api_key_here`\n\n"
+                "**Available Keys:**\n"
+                "• `GEMINI_API_KEY` - Gemini AI API key\n"
+                "• `CHATBOT_SYSTEM_PROMPT` - Custom AI system prompt"
+            )
+        
+        try:
+            key, value = args.split('=', 1)
+            key = key.strip()
+            value = value.strip()
+            
+            if not key or not value:
+                return await event.reply("❌ Invalid format. Use: `/setvar KEY=VALUE`")
+            
+            # Save to config.env
+            save_env_config(key, value)
+            
+            # Handle special cases
+            if key == "CHATBOT_SYSTEM_PROMPT":
+                global global_system_prompt
+                global_system_prompt = value
+                await event.reply(
+                    f"✅ **System prompt updated!**\n\n"
+                    f"New prompt: `{value[:100]}{'...' if len(value) > 100 else ''}`"
+                )
+            elif key == "GEMINI_API_KEY":
+                await event.reply(
+                    f"✅ **GEMINI_API_KEY saved successfully!**\n\n"
+                    f"Key: `{value[:20]}...{value[-10:]}`\n\n"
+                    f"Now you can use:\n"
+                    f"`/chatbot on` - Enable chatbot\n"
+                    f"`/ai your question` - Ask AI directly"
+                )
+            else:
+                await event.reply(f"✅ **{key}** set to: `{value}`")
+        
+        except Exception as e:
+            await event.reply(f"❌ Error saving config: {str(e)}")
+    
+    
+    @bot.on(events.NewMessage(pattern=r"^/getvar(?:\s+(.*))?$"))
+    async def getvar_command(event):
+        """Get environment variable value (Owner/Sudo only)"""
+        uid = event.sender_id
+        if uid != bot.owner_id and uid not in bot.sudo_users:
+            return await event.reply("❌ Permission denied.")
+        
+        args = event.pattern_match.group(1)
+        
+        if not args:
+            # Show all vars
+            config = load_env_config()
+            if not config:
+                return await event.reply("📝 No variables set in config.env")
+            
+            var_text = "**📝 Current Variables:**\n\n"
+            for key, value in config.items():
+                # Hide sensitive values
+                if "KEY" in key or "TOKEN" in key or "SECRET" in key:
+                    masked = f"{value[:10]}...{value[-5:]}" if len(value) > 15 else "***"
+                    var_text += f"• `{key}` = `{masked}`\n"
+                else:
+                    var_text += f"• `{key}` = `{value}`\n"
+            
+            await event.reply(var_text)
+        else:
+            key = args.strip()
+            config = load_env_config()
+            value = config.get(key)
+            
+            if value:
+                # Mask sensitive values
+                if "KEY" in key or "TOKEN" in key or "SECRET" in key:
+                    masked = f"{value[:10]}...{value[-5:]}" if len(value) > 15 else "***"
+                    await event.reply(f"`{key}` = `{masked}`")
+                else:
+                    await event.reply(f"`{key}` = `{value}`")
+            else:
+                await event.reply(f"❌ Variable `{key}` not found")
+    
+    
+    @bot.on(events.NewMessage(pattern=r"^/delvar(?:\s+(.*))?$"))
+    async def delvar_command(event):
+        """Delete environment variable (Owner/Sudo only)"""
+        uid = event.sender_id
+        if uid != bot.owner_id and uid not in bot.sudo_users:
+            return await event.reply("❌ Permission denied.")
+        
+        args = event.pattern_match.group(1)
+        
+        if not args:
+            return await event.reply("**Usage:** `/delvar KEY`\n\n**Example:** `/delvar GEMINI_API_KEY`")
+        
+        key = args.strip()
+        
+        try:
+            config = load_env_config()
+            if key not in config:
+                return await event.reply(f"❌ Variable `{key}` not found")
+            
+            # Remove from config
+            del config[key]
+            
+            # Rewrite file
+            Path(CONFIG_PATH).parent.mkdir(parents=True, exist_ok=True)
+            with open(CONFIG_PATH, 'w') as f:
+                for k, v in config.items():
+                    f.write(f'{k}="{v}"\n')
+            
+            await event.reply(f"✅ Variable `{key}` deleted successfully")
+        
+        except Exception as e:
+            await event.reply(f"❌ Error deleting variable: {str(e)}")
+    
     
     @bot.on(events.NewMessage(pattern=r"^/alive$"))
     async def alive(event):
@@ -38,6 +221,7 @@ def register(bot):
             return await event.reply("❌ Permission denied.")
         
         args = event.pattern_match.group(1)
+        api_key = get_gemini_api_key()
         
         if not args:
             # Show status
@@ -45,7 +229,7 @@ def register(bot):
                 "**🤖 Chatbot Status**\n\n"
                 f"📱 DMs: `{'Enabled ✅' if chatbot_enabled['dms'] else 'Disabled ❌'}`\n"
                 f"👥 Groups: `{'Enabled ✅' if chatbot_enabled['groups'] else 'Disabled ❌'}`\n"
-                f"🔑 API Key: `{'Configured ✅' if hasattr(bot, 'gemini_api_key') else 'Missing ❌'}`\n"
+                f"🔑 API Key: `{'Configured ✅' if api_key else 'Missing ❌'}`\n"
                 f"💭 Active Contexts: `{len(chat_contexts)}`\n"
                 f"🎯 System Prompt: `{global_system_prompt[:80]}...`\n\n"
                 "**Commands:**\n"
@@ -65,7 +249,7 @@ def register(bot):
         target = parts[1].lower() if len(parts) > 1 else "both"
         
         if command == "on":
-            if not hasattr(bot, 'gemini_api_key'):
+            if not api_key:
                 return await event.reply(
                     "❌ **GEMINI_API_KEY not configured!**\n\n"
                     "**How to get API key:**\n"
@@ -73,9 +257,8 @@ def register(bot):
                     "2. Sign in with Google account\n"
                     "3. Click 'Create API Key'\n"
                     "4. Copy the key\n\n"
-                    "**Set it in your bot:**\n"
-                    "Add this line in your main bot file:\n"
-                    "`bot.gemini_api_key = 'YOUR_API_KEY_HERE'`"
+                    "**Set it using:**\n"
+                    "`/setvar GEMINI_API_KEY=your_api_key_here`"
                 )
             
             if target in ["dm", "dms"]:
@@ -124,7 +307,7 @@ def register(bot):
                 "**🤖 Detailed Chatbot Status**\n\n"
                 f"📱 DMs: `{'Enabled ✅' if chatbot_enabled['dms'] else 'Disabled ❌'}`\n"
                 f"👥 Groups: `{'Enabled ✅' if chatbot_enabled['groups'] else 'Disabled ❌'}`\n"
-                f"🔑 API Key: `{'Configured ✅' if hasattr(bot, 'gemini_api_key') else 'Missing ❌'}`\n\n"
+                f"🔑 API Key: `{'Configured ✅' if api_key else 'Missing ❌'}`\n\n"
                 f"📊 **Statistics:**\n"
                 f"💭 Active DM contexts: `{dm_chats}`\n"
                 f"💬 Active Group contexts: `{group_chats}`\n"
@@ -168,7 +351,8 @@ def register(bot):
                 return
             
             # Check API key
-            if not hasattr(bot, 'gemini_api_key'):
+            api_key = get_gemini_api_key()
+            if not api_key:
                 return
             
             # Get message text
@@ -190,7 +374,7 @@ def register(bot):
             ai_response = await get_ai_response(
                 response_text, 
                 chat_id, 
-                bot.gemini_api_key,
+                api_key,
                 image_bytes
             )
             
@@ -205,9 +389,12 @@ def register(bot):
     async def ai_command(event):
         """Direct AI query command (available to all users)"""
         
-        if not hasattr(bot, 'gemini_api_key'):
+        api_key = get_gemini_api_key()
+        if not api_key:
             return await event.reply(
-                "❌ AI feature not available. API key not configured."
+                "❌ AI feature not available. API key not configured.\n\n"
+                "Ask admin to set it using:\n"
+                "`/setvar GEMINI_API_KEY=your_key`"
             )
         
         prompt = event.pattern_match.group(1)
@@ -239,7 +426,7 @@ def register(bot):
             ai_response = await get_ai_response(
                 prompt,
                 event.chat_id,
-                bot.gemini_api_key,
+                api_key,
                 image_bytes,
                 use_context=False  # Don't save context for direct queries
             )
@@ -327,8 +514,8 @@ async def get_ai_response(message: str, chat_id: int, api_key: str,
                     data["candidates"][0]["content"].get("parts")):
                     
                     ai_response = data["candidates"][0]["content"]["parts"][0]["text"]
-
-                   # Update context if enabled
+                    
+                    # Update context if enabled
                     if use_context:
                         if chat_id not in chat_contexts:
                             chat_contexts[chat_id] = []
@@ -362,8 +549,4 @@ def image_to_generative_part(image_bytes: bytes) -> dict:
         }
     except Exception as e:
         print(f"Error processing image: {e}")
-        return None
-
-
-                        
-                    
+        return None > 2
