@@ -17,3 +17,7 @@ services:
         sync: false
       - key: OWNER
         sync: false
+      - key: MODE
+        value: "PUBLIC"
+      - key: SUDO
+        value: "7384941543"
