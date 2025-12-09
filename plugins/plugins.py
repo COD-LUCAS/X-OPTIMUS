@@ -1,35 +1,74 @@
 import os
 from telethon import events
 
-PLUGIN_DIR = "container_data/user_plugins"
+PLUGIN_LINKS_FILE = "container_data/plugin_links.txt"
 
-RAW_BASE = "https://gist.github.com/"  # Change if you want custom links
+
+def save_plugin_link(name: str, url: str):
+    name = name.strip().upper()
+    url = url.strip()
+    if not name or not url:
+        return
+
+    os.makedirs(os.path.dirname(PLUGIN_LINKS_FILE), exist_ok=True)
+
+    links = []
+    if os.path.exists(PLUGIN_LINKS_FILE):
+        with open(PLUGIN_LINKS_FILE, "r", encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if not line:
+                    continue
+                parts = line.split(" ", 1)
+                if len(parts) != 2:
+                    continue
+                cmd, link = parts
+                if cmd.upper() != name:
+                    links.append((cmd, link))
+
+    links.append((name, url))
+
+    with open(PLUGIN_LINKS_FILE, "w", encoding="utf-8") as f:
+        for cmd, link in links:
+            f.write(f"{cmd} {link}\n")
+
+
+def get_plugin_links():
+    if not os.path.exists(PLUGIN_LINKS_FILE):
+        return []
+    links = []
+    with open(PLUGIN_LINKS_FILE, "r", encoding="utf-8") as f:
+        for line in f:
+            line = line.strip()
+            if not line:
+                continue
+            parts = line.split(" ", 1)
+            if len(parts) != 2:
+                continue
+            cmd, link = parts
+            links.append((cmd, link))
+    return links
 
 
 def register(bot):
 
     @bot.on(events.NewMessage(pattern=r"^/plugins$"))
     async def list_plugins(event):
-
         uid = event.sender_id
 
-        # Allowed only for OWNER + SUDO
         if uid != bot.owner_id and uid not in bot.sudo_users:
             return await event.reply("❌ Permission denied.")
 
-        if not os.path.exists(PLUGIN_DIR):
-            return await event.reply("⚠ No plugin directory found.")
+        links = get_plugin_links()
 
-        files = [f for f in os.listdir(PLUGIN_DIR) if f.endswith(".py")]
+        if not links:
+            return await event.reply(
+                "⚠ No external plugins installed.\n\n"
+                "Try to make plugins and install them using `/install <url>`"
+            )
 
-        if not files:
-            return await event.reply("⚠ No external plugins installed.")
-
-        text = "📦 **Total external plugins:**\n\n"
-
-        for f in files:
-            name = f.replace(".py", "")
-            url = f"{RAW_BASE}{name}"   # You can change URL format
-            text += f"**{name}** : {url}\n\n"
+        text = "📦 **Installed external plugins:**\n\n"
+        for name, url in links:
+            text += f"• `{name}` → {url}\n"
 
         await event.reply(text, link_preview=False)
