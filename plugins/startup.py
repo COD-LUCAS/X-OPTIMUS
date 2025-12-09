@@ -1,22 +1,29 @@
 async def on_startup(bot):
     try:
-        text = "𝗫-𝗢𝗣𝗧𝗜𝗠𝗨𝗦 𝗕𝗢𝗧 𝗦𝗧𝗔𝗥𝗧𝗘𝗗"
+        text = (
+            "🔥 **X-OPTIMUS BOT STARTED** 🔥\n\n"
+            "✅ The system is now online.\n"
+            "⚙️ All modules loaded successfully.\n"
+            "🚀 Ready to execute commands!"
+        )
 
-        # Send to Saved Messages
+        # Always send to saved messages (ME)
         await bot.send_message("me", text)
 
-        # Send to owner
+        sent_to = set()  # prevent duplicate sends
+
         owner_id = getattr(bot, "owner_id", None)
         if owner_id:
             await bot.send_message(owner_id, text)
+            sent_to.add(owner_id)
 
-        # Send to all sudo members
         sudo_users = getattr(bot, "sudo_users", [])
         for uid in sudo_users:
-            try:
-                await bot.send_message(uid, text)
-            except:
-                pass
+            if uid not in sent_to:  # do NOT send again
+                try:
+                    await bot.send_message(uid, text)
+                except:
+                    pass
 
     except Exception as e:
         print(f"Startup message failed: {e}")
