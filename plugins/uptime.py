@@ -1,4 +1,3 @@
-import os
 import time
 from telethon import events
 
@@ -10,9 +9,11 @@ def format_uptime(sec):
 
 def register(bot):
 
+    if not hasattr(bot, "START_TIME"):
+        bot.START_TIME = time.time()
+
     @bot.on(events.NewMessage(pattern=r"^/uptime$"))
     async def uptime(event):
-
         uid = event.sender_id
         mode = bot.mode.lower()
 
@@ -20,23 +21,13 @@ def register(bot):
             if uid != bot.owner_id and uid not in bot.sudo_users:
                 return
 
-        if not hasattr(bot, "START_TIME"):
-            bot.START_TIME = time.time()
-
         sec = int(time.time() - bot.START_TIME)
         uptime_text = format_uptime(sec)
 
-        caption = (
-            "╔════ 🔰 **X-OPTIMUS UPTIME** 🔰 ════╗\n"
-            f"⏱ **Running:** `{uptime_text}`\n"
+        text = (
+            "🔥 **X-OPTIMUS BOT UPTIME** 🔥\n\n"
+            f"⏱ **Running Since:** `{uptime_text}`\n"
             "⚡ **Status:** Stable\n"
-            "💠 **Performance:** Excellent\n"
-            "╚═════════════════════════════════╝"
         )
 
-        img = "assets/uptime.jpg"
-
-        if os.path.exists(img):
-            await bot.send_file(event.chat_id, img, caption=caption)
-        else:
-            await event.reply(caption)
+        await event.reply(text)
