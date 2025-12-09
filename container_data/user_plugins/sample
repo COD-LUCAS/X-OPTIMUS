@@ -2,16 +2,19 @@ from telethon import events
 
 def register(bot):
 
-    @bot.on(events.NewMessage(pattern=r"^/yourcmd(?:\s+(.*))?$"))
-    async def your_command(event):
+    @bot.on(events.NewMessage(pattern=r"^/sample(?:\s+(.*))?$"))
+    async def sample(event):
 
-        # get text after command
+        uid = event.sender_id
+        mode = bot.mode.lower()
+
+        if mode == "private":
+            if uid != bot.owner_id and uid not in bot.sudo_users:
+                return
+
         query = event.pattern_match.group(1)
 
-        # if nothing provided
         if not query:
-            return await event.reply("Usage:\n`/yourcmd something`")
+            return await event.reply("No input provided.")
 
-        # Your logic here
-        await event.reply(f"✅ You sent: {query}")
-        
+        await event.reply(f"Sample plugin received: {query}")
