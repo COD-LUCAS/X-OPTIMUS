@@ -1,4 +1,6 @@
-# X-OPTIMUS TG BOT
+[![Telegram](assets/telegram.png)](https://telegram.org)
+# TELEGRAM USER BOT
+A simple Telegram user-bot...
 
 <p align="center">
   <img src="assets/readme.jpg" alt="X-OPTIMUS TG BOT Menu" width="600">
