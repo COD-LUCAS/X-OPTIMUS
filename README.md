@@ -1,5 +1,4 @@
-[![Telegram icon](assets/telegram-small.png)](https://t.me/your_bot_username) Telegram User Bot
-
+<h1 align="center"><b>TELEGRAM USER BOT</b></h1>
 <p align="center">
   <img src="assets/readme.jpg" alt="X-OPTIMUS TG BOT Menu" width="600">
 </p>
