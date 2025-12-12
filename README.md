@@ -1,7 +1,4 @@
-<a href="https://telegram.org" target="_blank" rel="noopener">
-  <img src="assets/telegram.png" alt="Telegram" width="48" height="48" style="vertical-align:middle"/>
-</a>
-<span style="font-size:1.1em; font-weight:600; margin-left:8px;">TELEGRAM USER BOT</span>.
+[![Telegram icon](assets/telegram-small.png)](https://t.me/your_bot_username) Telegram User Bot
 
 <p align="center">
   <img src="assets/readme.jpg" alt="X-OPTIMUS TG BOT Menu" width="600">
