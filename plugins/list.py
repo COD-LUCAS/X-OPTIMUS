@@ -49,14 +49,15 @@ def register(bot):
                 "insta <url>": "Download Instagram media",
                 "yt <url>": "Download YouTube video",
                 "yta <url>": "Download YouTube audio",
-                "img <url>": "Image Downloader"
+                "img": "Image Downloader"
             },
             "**🎨 MEDIA TOOLS**": {
                 "mp3": "Convert video to MP3 (reply to video)",
                 "genimg <prompt>": "Generate AI image",
                 "rbg": "Remove image background",
                 "pdf": "Convert images to PDF",
-                "url": "Upload media to Catbox"
+                "url": "Upload media to Catbox",
+                "sing": "sing the given song"
             },
             "**🤖 AI FEATURES**": {
                 "chatbot": "Toggle auto AI replies"
