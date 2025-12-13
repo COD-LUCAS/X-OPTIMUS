@@ -48,7 +48,7 @@ def register(bot):
                 "insta <url>": "Download Instagram media",
                 "yt <url>": "Download YouTube video",
                 "yta <url>": "Download YouTube audio",
-                "img <url>": "Image placeholder tool (coming soon)"
+                "img <url>": "Image Downloader"
             },
             "**🎨 MEDIA TOOLS**": {
                 "mp3": "Convert video to MP3 (reply to video)",
