@@ -47,6 +47,7 @@ def register(bot):
             },
             "**📥 DOWNLOADERS**": {
                 "insta <url>": "Download Instagram media",
+                "autoinsta ": "auto download insta",
                 "yt <url>": "Download YouTube video",
                 "yta <url>": "Download YouTube audio",
                 "img": "Image Downloader"
