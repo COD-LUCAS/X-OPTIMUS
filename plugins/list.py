@@ -39,7 +39,7 @@ def register(bot):
                 "/getsudo": "show all sudo members",
                 "/install <raw_url>": "Install a new plugin",
                 "/remove <plugin>": "Remove installed plugin",
-                "/plugins": "Show installed plugins with their source URLs",
+                "/plugins": "Show installed plugins",
                 "/checkupdate": "Check for bot updates",
                 "/update": "Update bot to latest version",
                 "/reboot": "Restart the bot",
