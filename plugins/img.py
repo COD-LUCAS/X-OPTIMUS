@@ -1,16 +1,33 @@
-from telethon import events
+case'img': {
+ if (!text) return m.reply(` Example: ${prefix + command} car 10`);
 
-def register(bot):
+ const gis = require('g-i-s');
+ let parts = text.split(" ");
+ let count = 5;
+ let query = text;
 
-    @bot.on(events.NewMessage(pattern=r"^/img(?:\s+(.*))?$"))
-    async def img_search(event):
+ if (!isNaN(parts[parts.length - 1])) {
+ count = parseInt(parts.pop());
+ query = parts.join(" ");
+ }
 
-        mode = bot.mode.lower()
-        uid = event.sender_id
-
-        # MODE = private → only owner or sudo can use
-        if mode == "private":
-            if uid != bot.owner_id and uid not in bot.sudo_users:
-                return await event.reply("❌ Private mode: only owner or sudo can use this command.")
-
-        await event.reply("⚙️ This feature is currently being worked on.\nPlease wait for the next update.")
+ gis(query, async (error, results) => {
+ if (error || !results.length) {
+ return m.reply('No images found.');
+ }
+ try {
+ let images = results.slice(0, count);
+ for (let img of images) {
+ await naze.sendMessage(
+ m.chat,
+ { image: { url: img.url } },
+ { quoted: m }
+ );
+ }
+ } catch (e) {
+ console.log(e);
+ return m.reply('❌ Error while fetching images.');
+ }
+ });
+}
+break
