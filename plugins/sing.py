@@ -1,6 +1,5 @@
 import os
 import asyncio
-import subprocess
 from telethon import events
 
 TEMP_DIR = "container_data/temp"
@@ -33,11 +32,17 @@ def register(bot):
         audio_ogg = base + ".ogg"
 
         try:
+            if query.startswith("http"):
+                target = query
+            else:
+                target = f"ytsearch1:{query}"
+
             ytdlp_cmd = [
                 "yt-dlp",
                 "-f", "bestaudio",
+                "--no-playlist",
                 "-o", audio_m4a,
-                query
+                target
             ]
 
             proc = await asyncio.create_subprocess_exec(
@@ -48,7 +53,7 @@ def register(bot):
             await proc.communicate()
 
             if not os.path.exists(audio_m4a):
-                await status.edit("❌ Sing: failed to download audio")
+                await status.edit("❌ Sing: download failed")
                 await asyncio.sleep(2)
                 await status.delete()
                 return
@@ -80,12 +85,12 @@ def register(bot):
                 voice_note=True
             )
 
-            await asyncio.sleep(0.5)
+            await asyncio.sleep(0.3)
             await status.delete()
 
         except Exception:
             try:
-                await status.edit("❌ Sing: error processing song")
+                await status.edit("❌ Sing: failed to process song")
                 await asyncio.sleep(2)
                 await status.delete()
             except:
