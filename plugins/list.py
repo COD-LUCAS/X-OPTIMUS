@@ -42,7 +42,8 @@ def register(bot):
                 "/plugins": "Show installed plugins with their source URLs",
                 "/checkupdate": "Check for bot updates",
                 "/update": "Update bot to latest version",
-                "/reboot": "Restart the bot"
+                "/reboot": "Restart the bot",
+                "/setdp" : "change profile picture"
             },
             "**📥 DOWNLOADERS**": {
                 "insta <url>": "Download Instagram media",
