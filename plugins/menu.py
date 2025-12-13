@@ -69,6 +69,7 @@ Use **/list** to get more info.
 /pdf
 /url
 /chatbot
+/sing
 
 **𝑼𝒔𝒆𝒓 𝑷𝒍𝒖𝒈𝒊𝒏𝒔**
 ━━━━━━━━━━
