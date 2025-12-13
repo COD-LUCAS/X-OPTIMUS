@@ -38,6 +38,7 @@ Use **/list** to get more info.
 /info
 /id
 /uptime
+/list
 
 **𝑨𝒅𝒎𝒊𝒏 𝑪𝒐𝒎𝒎𝒂𝒏𝒅𝒔**
 ━━━━━━━━━━
@@ -54,7 +55,7 @@ Use **/list** to get more info.
 /checkupdate
 /update
 /reboot
-/list
+/setdp
 
 **𝑩𝒖𝒊𝒍𝒕-𝒊𝒏 𝑭𝒆𝒂𝒕𝒖𝒓𝒆𝒔**
 ━━━━━━━━━━
