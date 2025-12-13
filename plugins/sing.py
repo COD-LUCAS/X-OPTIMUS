@@ -17,89 +17,67 @@ def register(bot):
             if uid != bot.owner_id and uid not in bot.sudo_users:
                 return
 
-        query = event.pattern_match.group(1)
-        if not query:
+        text = event.pattern_match.group(1)
+        if not text and event.is_reply:
+            reply = await event.get_reply_message()
+            text = reply.text if reply else None
+
+        if not text:
             return await event.reply(
-                "🎙️ **Sing – Voice Song Player**\n\n"
-                "Usage: `/sing <song name or YouTube link>`\n"
-                "Example: `/sing malare premam`"
+                "🎙️ Sing – Voice Song Player\n\n"
+                "Usage: `/sing <song name or YouTube link>`"
             )
 
-        status = await event.reply("🎵 Searching your song…")
+        status = await event.reply("🎵 Searching your song...")
 
         base = os.path.join(TEMP_DIR, f"sing_{event.id}")
-        audio_m4a = base + ".m4a"
-        audio_ogg = base + ".ogg"
+        m4a = base + ".m4a"
+        ogg = base + ".ogg"
 
         try:
-            if query.startswith("http"):
-                target = query
-            else:
-                target = f"ytsearch1:{query}"
+            target = text if text.startswith("http") else f"ytsearch1:{text}"
 
-            ytdlp_cmd = [
+            await asyncio.create_subprocess_exec(
                 "yt-dlp",
                 "-f", "bestaudio",
                 "--no-playlist",
-                "-o", audio_m4a,
-                target
-            ]
-
-            proc = await asyncio.create_subprocess_exec(
-                *ytdlp_cmd,
+                "-o", m4a,
+                target,
                 stdout=asyncio.subprocess.DEVNULL,
                 stderr=asyncio.subprocess.DEVNULL
-            )
-            await proc.communicate()
+            ).then(lambda p: p.wait())
 
-            if not os.path.exists(audio_m4a):
-                await status.edit("❌ Sing: download failed")
-                await asyncio.sleep(2)
-                await status.delete()
-                return
+            if not os.path.exists(m4a):
+                raise Exception("download_failed")
 
-            ffmpeg_cmd = [
+            await asyncio.create_subprocess_exec(
                 "ffmpeg", "-y",
-                "-i", audio_m4a,
+                "-i", m4a,
+                "-vn",
                 "-c:a", "libopus",
                 "-b:a", "96k",
-                audio_ogg
-            ]
-
-            proc = await asyncio.create_subprocess_exec(
-                *ffmpeg_cmd,
+                ogg,
                 stdout=asyncio.subprocess.DEVNULL,
                 stderr=asyncio.subprocess.DEVNULL
-            )
-            await proc.communicate()
+            ).then(lambda p: p.wait())
 
-            if not os.path.exists(audio_ogg):
-                await status.edit("❌ Sing: conversion failed")
-                await asyncio.sleep(2)
-                await status.delete()
-                return
+            if not os.path.exists(ogg):
+                raise Exception("convert_failed")
 
-            await bot.send_file(
-                event.chat_id,
-                audio_ogg,
-                voice_note=True
-            )
+            await bot.send_file(event.chat_id, ogg, voice_note=True)
 
             await asyncio.sleep(0.3)
             await status.delete()
 
         except Exception:
             try:
-                await status.edit("❌ Sing: failed to process song")
+                await status.edit("❌ Sing: Failed to process song")
                 await asyncio.sleep(2)
                 await status.delete()
             except:
                 pass
 
         finally:
-            for f in (audio_m4a, audio_ogg):
+            for f in (m4a, ogg):
                 if os.path.exists(f):
-                    try:
-                        os.remove(f)
-                    except:
-                        pass
+                    os.remove(f)
