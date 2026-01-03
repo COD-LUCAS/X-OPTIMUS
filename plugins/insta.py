@@ -51,7 +51,7 @@ def register(bot):
             await proc.communicate()
 
             if not os.path.exists(out_file):
-                await msg.edit("❌ Failed to fetch Instagram media.")
+                await msg.edit("❌ Failed to fetch Instagram media,just send only link autoinsta is active.")
                 await asyncio.sleep(2)
                 await msg.delete()
                 return
