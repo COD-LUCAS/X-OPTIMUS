@@ -31,13 +31,13 @@ Get your **API ID** and **API Hash** from [my.telegram.org](https://my.telegram.
 
 ### 2️⃣ Session String
 Generate your session string using our secure tool:
-
+1:VIA SITE (SLOWER AND NOT RECOMMENDED)
 <p align="center">
   <a href="https://optimus-frontend-blush.vercel.app/">
     <img src="https://img.shields.io/badge/🔑_Generate-Session%20String-0088CC?style=for-the-badge&logo=telegram" alt="Session String Generator">
   </a>
 </p>
-
+2:VIA TELEGRAM BOT (FAST AND WORKING)
 <p align="center">
   <a href="https://t.me/ForwardMsgGetBot">
     <img src="https://img.shields.io/badge/🚀%20Generate%20Telethon%20Session-Telegram-0088CC?style=for-the-badge&logo=telegram" />
