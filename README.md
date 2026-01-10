@@ -38,6 +38,12 @@ Generate your session string using our secure tool:
   </a>
 </p>
 
+<p align="center">
+  <a href="https://t.me/ForwardMsgGetBot">
+    <img src="https://img.shields.io/badge/🚀%20Generate%20Telethon%20Session-Telegram-0088CC?style=for-the-badge&logo=telegram" />
+  </a>
+</p>
+
 ---
 
 ## HOW TO DEPLOY
