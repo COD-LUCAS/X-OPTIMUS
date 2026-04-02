@@ -14,7 +14,6 @@ import threading
 import requests
 from flask import Flask
 
-# Configure logging
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s | %(levelname)8s | %(message)s',
@@ -63,25 +62,26 @@ paths = [
     "config.env"
 ]
 
-loaded = False
 for p in paths:
     if os.path.exists(p):
         load_dotenv(p)
-        loaded = True
         logger.info(f"Config loaded from: {p}")
         break
-
-if not loaded:
-    logger.critical("config.env not found in any expected location")
-    exit(1)
+else:
+    logger.info("No config.env found, relying on system environment variables")
 
 API_ID = os.getenv("API_ID")
 API_HASH = os.getenv("API_HASH")
-STRING = os.getenv("STRING_SESSION")
+STRING = os.getenv("SESSION_STRING") or os.getenv("STRING_SESSION")
 OWNER = os.getenv("OWNER", "")
 
 if not API_ID or not API_HASH or not STRING:
-    logger.critical("Missing API credentials (API_ID, API_HASH, or STRING_SESSION)")
+    logger.critical(
+        f"Missing API credentials — "
+        f"API_ID={'SET' if API_ID else 'MISSING'}, "
+        f"API_HASH={'SET' if API_HASH else 'MISSING'}, "
+        f"SESSION_STRING={'SET' if STRING else 'MISSING'}"
+    )
     exit(1)
 
 API_ID = int(API_ID)
@@ -173,10 +173,10 @@ def uptime_pinger():
     if not url:
         logger.info("No auto-ping URL detected, uptime pinger disabled")
         return
-    
+
     logger.info(f"Uptime pinger started for: {url}")
     consecutive_failures = 0
-    
+
     while True:
         try:
             response = requests.get(url, timeout=10)
@@ -193,7 +193,7 @@ def uptime_pinger():
                 logger.error(f"Uptime ping failed: {e}")
             elif consecutive_failures % 5 == 0:
                 logger.error(f"Uptime ping still failing (attempt {consecutive_failures})")
-        
+
         time.sleep(120)
 
 def start_uptime_pinger():
@@ -206,8 +206,7 @@ def start_uptime_pinger():
 
 def start_webserver():
     app = Flask(__name__)
-    
-    # Disable Flask's default logging for cleaner output
+
     log = logging.getLogger('werkzeug')
     log.setLevel(logging.ERROR)
 
@@ -220,29 +219,26 @@ def start_webserver():
             "uptime_seconds": uptime,
             "platform": detect_platform()
         }
-    
+
     @app.route("/health")
     def health():
         return {"status": "healthy"}, 200
 
-    # Smart port detection
     port = int(os.getenv("PORT", 8080))
-    
-    # Verify port is not already in use
+
     platform_type = detect_platform()
     if platform_type == "RENDER":
-        # Render requires binding to 0.0.0.0 and the PORT env var
         port = int(os.getenv("PORT", 10000))
         logger.info(f"Render detected - using PORT={port}")
-    
+
     logger.info(f"Starting web server on 0.0.0.0:{port}")
-    
+
     def run_flask():
         try:
             app.run(host="0.0.0.0", port=port, threaded=True)
         except Exception as e:
             logger.error(f"Web server failed to start: {e}")
-    
+
     threading.Thread(target=run_flask, daemon=True).start()
     logger.info("Web server started successfully")
 
@@ -277,17 +273,14 @@ async def show_banner(version, platform_type, plugin_count, session_status):
 
 async def start():
     logger.info("Starting bot initialization sequence...")
-    
+
     version = load_version()
     platform_type = detect_platform()
     logger.info(f"Platform detected: {platform_type}")
-    
-    # Start web server first (important for Render)
+
     start_webserver()
-    
-    # Small delay to ensure webserver is up
     await asyncio.sleep(1)
-    
+
     logger.info("Connecting to Telegram...")
     await bot.start()
     logger.info("Connected to Telegram successfully")
@@ -309,14 +302,11 @@ async def start():
     bot.MODE = bot.mode.upper()
     logger.info(f"Bot mode: {bot.MODE}")
 
-    # Start uptime pinger for Render/Koyeb
     start_uptime_pinger()
-
     await auto_join()
 
     total = load_plugins()
 
-    # Call plugin startup hooks
     logger.info("Executing plugin startup hooks...")
     for p in plugins.values():
         if hasattr(p, "on_startup"):
